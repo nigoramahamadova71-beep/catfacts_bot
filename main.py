@@ -8,7 +8,29 @@ from deep_translator import GoogleTranslator
 load_dotenv()
 
 TOKEN = os.getenv("API_TOKEN")
+API_KEY = os.getenv("API_KEY")
+
 bot = telebot.TeleBot(TOKEN)
+
+
+def set_Cat(chat_id):
+    with open("media/cat.jpg", "rb") as img:
+        bot.send_photo(chat_id, photo=img)
+
+
+def fatch_cats(chat_id):
+    data = requests.get("https://api.thecatapi.com/v1/images/search", timeout=5).json()
+    for el in data:
+        url = el.get("url")
+
+        if url.endswith(".gif"):
+            bot.send_animation(chat_id, animation=url)
+        else:
+            bot.send_photo(chat_id, photo=el["url"])
+            key_btn = types.InlineKeyboardButton(
+                text="random cat image", callback_data="random"
+            )
+            bot.send_message(chat_id, text="хотите еще фото?", reply_markup=key_btn)
 
 
 @bot.message_handler(commands=["start"])
@@ -18,9 +40,11 @@ def start(message):
 
     keyboard = types.InlineKeyboardMarkup()
     key_yes = types.InlineKeyboardButton(text="да", callback_data="yes")
-    keyboard.add(key_yes)
-    # key_no = types.InlineKeyboardButton(text="нет", callback_data="no")
-    # keyboard.add(key_no)
+    key_no = types.InlineKeyboardButton(text="нет", callback_data="no")
+    key_random = types.InlineKeyboardButton(
+        text="рандомная фото", callback_data="random"
+    )
+    keyboard.add(key_yes, key_no, key_random)
 
     bot.send_message(chat_id, text, reply_markup=keyboard)
 
@@ -36,6 +60,24 @@ def call_back(call):
         )
 
         bot.send_message(chat_id, text=translation)
+    elif call.data == "no":
+        set_Cat(chat_id)
+
+    elif call.data == "random":
+        fatch_cats(chat_id)
+    bot.answer_callback_query(call.id)
 
 
-bot.polling(none_stop=True, interval=0)
+@bot.message_handler(content_types=["text"])
+def text_handler(message):
+    chat_id = message.chat.id
+    if message.text in ["да", "yes"]:
+        print("yes")
+        fatch_cats(chat_id)
+    elif message.text in ["нет", "no"]:
+        set_Cat(chat_id)
+
+
+if __name__ == "__main__":
+    print("running bot")
+    bot.infinity_polling(none_stop=True, interval=0)

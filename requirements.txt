@@ -1,0 +1,4 @@
+psTelegramBotAPI==4.29.1
+deep-translator==1.11.4
+python-dotenv==1.2.1
+requests==2.32.5
